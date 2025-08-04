@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Student Manager with Edit Popup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 30px;
+    }
+    .container {
+      max-width: 800px;
+      background: white;
+      margin: auto;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+      position: relative;
+      z-index: 1;
+    }
+    h1, h2 {
+      color: #34495e;
+      text-align: center;
+    }
+    form {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    input[type="text"], input[type="number"] {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      width: 180px;
+    }
+    input[type="submit"], button {
+      padding: 10px 30px;
+      background-color: #4b7bec;
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    input[type="submit"]:hover, button:hover {
+      background-color: #3867d6;
+    }
+    #tableActions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    #refreshBtn {
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      fill: #4b7bec;
+      transition: fill 0.3s;
+    }
+    #refreshBtn:hover:enabled {
+      fill: #3867d6;
+    }
+    #refreshBtn:disabled {
+      cursor: not-allowed;
+      fill: #a0a0a0;
+    }
+    #loading {
+      text-align: center;
+      font-weight: bold;
+      color: #34495e;
+      margin-bottom: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 5px;
+      box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 13px 15px;
+      text-align: left;
+    }
+    th {
+      background-color: #f5f6fa;
+      color: #34495e;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    #msg {
+      text-align: center;
+      margin: 10px 0;
+      color: #27ae60;
+      font-weight: bold;
+    }
+    #paginationControls {
+      margin-top: 12px;
+      text-align: center;
+    }
+    .pageBtn {
+      border: 1px solid #ccc;
+      margin: 0 5px;
+      padding: 5px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      background-color: white;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+    .pageBtn:hover {
+      background-color: #f0f0f0;
+    }
+    .pageBtn.active {
+      font-weight: bold;
+      background-color: #4b7bec;
+      color: white;
+      border-color: #4b7bec;
+    }
+    .pageBtn.disabled {
+      color: #bbb;
+      cursor: default;
+      border-color: #eee;
+    }
+    .actionBtn {
+      cursor: pointer;
+      padding: 6px 12px;
+      margin-right: 8px;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      color: white;
+      transition: background-color 0.3s;
+    }
+    .editBtn {
+      background-color: #f39c12;
+    }
+    .editBtn:hover {
+      background-color: #e67e22;
+    }
+    .deleteBtn {
+      background-color: #e74c3c;
+    }
+    .deleteBtn:hover {
+      background-color: #c0392b;
+    }
+
+    /* Modal styles */
+    #editModal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0; top: 0; width: 100%; height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+    }
+    #editModalContent {
+      background: white;
+      padding: 30px 40px;
+      border-radius: 12px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    #editModalContent h3 {
+      margin-top: 0;
+      text-align: center;
+      margin-bottom: 20px;
+      color: #34495e;
+    }
+    #editModalContent label {
+      display: block;
+      margin-bottom: 6px;
+      color: #555;
+      font-weight: 600;
+    }
+    #editModalContent input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 18px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    #modalButtons {
+      text-align: center;
+    }
+    #modalButtons button {
+      margin: 0 10px;
+      min-width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Student Manager</h1>
+    <form id="studentForm">
+      <!-- Replace with your actual Google Form entry IDs -->
+      <input type="text" id="firstName" name="entry.1234567890" placeholder="First Name" required />
+      <input type="text" id="lastName" name="entry.0987654321" placeholder="Last Name" required />
+      <input type="number" id="age" name="entry.1122334455" placeholder="Age" min="1" required />
+      <input type="submit" value="Add Student" />
+    </form>
+    <div id="msg"></div>
+
+    <div id="tableActions">
+      <h2 style="margin:0;">Student List</h2>
+      <svg id="refreshBtn" title="Refresh List" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 4V1L8 5l4 4V6a6 6 0 016 6 6 6 0 01-6 6 6 6 0 01-5.66-4H4.05a8 8 0 007.95 6 8 8 0 000-16z"/>
+      </svg>
+    </div>
+
+    <div id="loading" style="display:none;">Loading students...</div>
+    <div id="studentsTableWrap"></div>
+    <div id="paginationControls"></div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal">
+    <div id="editModalContent">
+      <h3>Edit Student</h3>
+      <form id="editForm">
+        <label for="editFirstName">First Name</label>
+        <input type="text" id="editFirstName" required />
+        <label for="editLastName">Last Name</label>
+        <input type="text" id="editLastName" required />
+        <label for="editAge">Age</label>
+        <input type="number" id="editAge" min="1" required />
+        <div id="modalButtons">
+          <button type="submit">Update Student</button>
+          <button type="button" id="cancelEdit">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const FORM_URL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSeIyIfmKLFA-H0tnNp8nOAhPVE01AjjftLioVNXfzXzzAvPpw/formResponse";
+    const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgPSNEs-gBCMg7RgqjuqcT-55M3JRHonUiE0YIWuzLTTncstlamIaN-w4eWDYbbazKJOPMAdt94Ib2-xauzsgM4rR8txPXQ4y0_i63dT8WzRo1GQoCKFMjb7GLkxOZ6GS1ArkH-4XWdPLaMDH9-bO2VRFwHhTPfRc27BOtQrW4y4hLjwASnB6GpPD-BAlat09bq2CEaN8laXk8vDE4FnLJv6xJ7K1Wf9YFXu03eAW9mHV1wSmUCiiN7kYyttKR-cOh9IQ0QjUheq-nOGcK_AHsToiWgGm0Y5p6ijnY0&lib=Mw8vICFaaLdrvjnVbxVawI5lbN8jRsW5o";
+
+    const form = document.getElementById('studentForm');
+    const msg = document.getElementById('msg');
+    const tableWrap = document.getElementById('studentsTableWrap');
+    const paginationWrap = document.getElementById('paginationControls');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const loading = document.getElementById('loading');
+
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const editFirstName = document.getElementById('editFirstName');
+    const editLastName = document.getElementById('editLastName');
+    const editAge = document.getElementById('editAge');
+    const cancelEditBtn = document.getElementById('cancelEdit');
+
+    let studentsData = [];
+    const rowsPerPage = 5;
+    let currentPage = 1;
+    let editIndex = null;
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const formData = new URLSearchParams(new FormData(form));
+
+      fetch(FORM_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+      }).then(() => {
+        msg.textContent = "Student added successfully!";
+        form.reset();
+        setTimeout(() => { msg.textContent = ""; }, 3500);
+        loadStudents();
+      }).catch(() => {
+        msg.textContent = "Error adding student. Please try again.";
+      });
+    });
+
+    refreshBtn.addEventListener('click', () => {
+      loadStudents();
+    });
+
+    function renderTable() {
+      if (studentsData.length === 0) {
+        tableWrap.innerHTML = "<p>No students found.</p>";
+        paginationWrap.innerHTML = "";
+        return;
+      }
+
+      const startIdx = (currentPage - 1) * rowsPerPage;
+      const pageData = studentsData.slice(startIdx, startIdx + rowsPerPage);
+
+      let html = `<table>
+        <thead><tr>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Age</th>
+          <th style="width:140px;">Actions</th>
+        </tr></thead><tbody>`;
+
+      pageData.forEach((st, i) => {
+        const globalIdx = startIdx + i;
+        html += `<tr>
+          <td>${st.first_name || ''}</td>
+          <td>${st.last_name || ''}</td>
+          <td>${st.age || ''}</td>
+          <td>
+            <button class="actionBtn editBtn" data-index="${globalIdx}">Edit</button>
+            <button class="actionBtn deleteBtn" data-index="${globalIdx}">Delete</button>
+          </td>
+        </tr>`;
+      });
+
+      html += "</tbody></table>";
+      tableWrap.innerHTML = html;
+
+      document.querySelectorAll('.editBtn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          editIndex = +e.target.getAttribute('data-index');
+          openEditModal(editIndex);
+        });
+      });
+
+      document.querySelectorAll('.deleteBtn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = +e.target.getAttribute('data-index');
+          deleteStudent(idx);
+        });
+      });
+    }
+
+    function renderPagination() {
+      const pageCount = Math.ceil(studentsData.length / rowsPerPage);
+      if (pageCount <= 1) {
+        paginationWrap.innerHTML = "";
+        return;
+      }
+      let html = "";
+      for(let i=1; i<=pageCount; i++){
+        html += `<span class="pageBtn${i === currentPage ? ' active' : ''}" data-page="${i}">${i}</span>`;
+      }
+      paginationWrap.innerHTML = html;
+
+      document.querySelectorAll('.pageBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const page = parseInt(btn.getAttribute('data-page'));
+          if(page !== currentPage){
+            currentPage = page;
+            renderTable();
+            renderPagination();
+            window.scrollTo({top: 0, behavior: 'smooth'});
+          }
+        });
+      });
+    }
+
+    function openEditModal(index){
+      const st = studentsData[index];
+      if(!st) return alert("Student not found!");
+      editFirstName.value = st.first_name || '';
+      editLastName.value = st.last_name || '';
+      editAge.value = st.age || '';
+      editModal.style.display = 'flex';
+    }
+
+    cancelEditBtn.addEventListener('click', () => {
+      editModal.style.display = 'none';
+      editForm.reset();
+      editIndex = null;
+    });
+
+    editForm.addEventListener('submit', e => {
+      e.preventDefault();
+      if(editIndex === null) return;
+
+      const fName = editFirstName.value.trim();
+      const lName = editLastName.value.trim();
+      const ageVal = editAge.value.trim();
+      if(!fName || !lName || !ageVal || !/^\d+$/.test(ageVal)) {
+        alert("Please enter valid data to update.");
+        return;
+      }
+
+      studentsData[editIndex] = {
+        ...studentsData[editIndex],
+        first_name: fName,
+        last_name: lName,
+        age: ageVal
+      };
+      editModal.style.display = 'none';
+      editForm.reset();
+      editIndex = null;
+      renderTable();
+      renderPagination();
+      alert("Student updated locally. To persist changes, implement API support.");
+    });
+
+    function deleteStudent(index){
+      if(!studentsData[index]) return alert("Student not found!");
+      if(confirm(`Are you sure you want to delete ${studentsData[index].first_name} ${studentsData[index].last_name}?`)){
+        studentsData.splice(index, 1);
+        const maxPage = Math.ceil(studentsData.length / rowsPerPage) || 1;
+        if(currentPage > maxPage) currentPage = maxPage;
+        renderTable();
+        renderPagination();
+        alert("Student deleted locally. To persist deletion, implement API support.");
+      }
+    }
+
+    function loadStudents(){
+      loading.style.display = "block";
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          studentsData = Array.isArray(data) ? data : (data.students || data.data || []);
+          currentPage = 1;
+          renderTable();
+          renderPagination();
+        })
+        .catch(() => {
+          tableWrap.innerHTML = "<p>Failed to load students.</p>";
+          paginationWrap.innerHTML = "";
+        })
+        .finally(() => {
+          loading.style.display = "none";
+        });
+    }
+
+    loadStudents();
+
+
+    // Close modal on outside click
+    window.addEventListener('click', e => {
+      if(e.target === editModal){
+        editModal.style.display = 'none';
+        editForm.reset();
+        editIndex = null;
+      }
+    });
+  </script>
+</body>
+</html>
