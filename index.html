@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Student Manager with Sorting & Edit Popup</title>
+  <title>Student Manager with Sorting & Edit Popup + Google Form Popup</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -47,6 +47,10 @@
       border-radius: 6px;
       cursor: pointer;
       transition: background-color 0.3s;
+    }
+    button#openFormBtn {
+      display: block;
+      margin: 0 auto 25px auto;
     }
     input[type="submit"]:hover, button:hover {
       background-color: #3867d6;
@@ -218,18 +222,67 @@
       margin: 0 10px;
       min-width: 100px;
     }
+
+    /* Google Form Modal styles */
+    #formModal {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.6);
+      align-items: center;
+      justify-content: center;
+    }
+    #modalContent {
+      position: relative;
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 700px;
+      height: 90vh;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+    }
+    #modalContent iframe {
+      flex: 1;
+      border: none;
+      border-radius: 12px 12px 0 0;
+      width: 100%;
+      height: 100%;
+    }
+    #closeModalBtn {
+      background: #e74c3c;
+      border: none;
+      color: white;
+      padding: 10px 18px;
+      font-size: 16px;
+      border-radius: 0 0 12px 12px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    #closeModalBtn:hover {
+      background: #c0392b;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Student Manager</h1>
-    <form id="studentForm">
-      <!-- Replace with your actual Google Form entry IDs -->
+
+    <!-- Button to open Google Form popup -->
+    <button id="openFormBtn">Add Student via Google Form</button>
+
+    <!-- Existing Add Student form (optional, can keep or hide if reflecting Google Form) -->
+    <form id="studentForm" style="display:none;">
       <input type="text" id="firstName" name="entry.1234567890" placeholder="First Name" required />
       <input type="text" id="lastName" name="entry.0987654321" placeholder="Last Name" required />
       <input type="number" id="age" name="entry.1122334455" placeholder="Age" min="1" required />
       <input type="submit" value="Add Student" />
     </form>
+
     <div id="msg"></div>
 
     <div id="tableActions">
@@ -263,6 +316,14 @@
     </div>
   </div>
 
+  <!-- Google Form Modal -->
+  <div id="formModal">
+    <div id="modalContent">
+      <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSeIyIfmKLFA-H0tnNp8nOAhPVE01AjjftLioVNXfzXzzAvPpw/viewform?embedded=true" title="Add Student Form"></iframe>
+      <button id="closeModalBtn">Close</button>
+    </div>
+  </div>
+
   <script>
     const FORM_URL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSeIyIfmKLFA-H0tnNp8nOAhPVE01AjjftLioVNXfzXzzAvPpw/formResponse";
     const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLgPSNEs-gBCMg7RgqjuqcT-55M3JRHonUiE0YIWuzLTTncstlamIaN-w4eWDYbbazKJOPMAdt94Ib2-xauzsgM4rR8txPXQ4y0_i63dT8WzRo1GQoCKFMjb7GLkxOZ6GS1ArkH-4XWdPLaMDH9-bO2VRFwHhTPfRc27BOtQrW4y4hLjwASnB6GpPD-BAlat09bq2CEaN8laXk8vDE4FnLJv6xJ7K1Wf9YFXu03eAW9mHV1wSmUCiiN7kYyttKR-cOh9IQ0QjUheq-nOGcK_AHsToiWgGm0Y5p6ijnY0&lib=Mw8vICFaaLdrvjnVbxVawI5lbN8jRsW5o";
@@ -281,6 +342,10 @@
     const editAge = document.getElementById('editAge');
     const cancelEditBtn = document.getElementById('cancelEdit');
 
+    const formModal = document.getElementById('formModal');
+    const openFormBtn = document.getElementById('openFormBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
     let studentsData = [];
     const rowsPerPage = 5;
     let currentPage = 1;
@@ -289,6 +354,20 @@
     // Sorting state
     let sortColumn = null; // 'first_name', 'last_name', 'age'
     let sortOrderAsc = true; // true = ascending, false = descending
+
+    // Google Form popup open/close handlers
+    openFormBtn.addEventListener('click', () => {
+      formModal.style.display = 'flex';
+    });
+    closeModalBtn.addEventListener('click', () => {
+      formModal.style.display = 'none';
+    });
+    // Close modal on click outside content
+    window.addEventListener('click', e => {
+      if(e.target === formModal){
+        formModal.style.display = 'none';
+      }
+    });
 
     form.addEventListener('submit', e => {
       e.preventDefault();
@@ -497,7 +576,7 @@
 
     loadStudents();
 
-    // Close modal on outside click
+    // Close edit modal on outside click
     window.addEventListener('click', e => {
       if(e.target === editModal){
         editModal.style.display = 'none';
